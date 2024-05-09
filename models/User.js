@@ -1,4 +1,8 @@
 const mongoose = require('mongoose')
+const bcrypt = require('bcrypt')
+const saltRounds = 10
+const jwt = require('jsonwebtoken')
+
 
 const userSchema = mongoose.Schema({
     name:{
@@ -12,7 +16,7 @@ const userSchema = mongoose.Schema({
     },
     password:{
         type: String,
-        maxlength: 50
+        maxlength: 500
     },
     role: {
         type: Number,
@@ -26,6 +30,46 @@ const userSchema = mongoose.Schema({
         type: Number
     }
 })
+
+
+userSchema.pre('save', function(next) {
+    var user = this;
+
+    if (user.isModified('password')) {
+        // 비밀번호가 변경되었을 때만 실행
+        bcrypt.genSalt(saltRounds, function(err, salt) {
+            if (err) return next(err);
+            bcrypt.hash(user.password, salt, function(err, hash) {
+                if (err) return next(err);
+                user.password = hash; // 해시된 비밀번호로 교체
+                next();
+            });
+        });
+    } else {
+        next();
+    }
+});
+
+userSchema.methods.comparePassword = function(plainPassword, cb){
+    //plainpassword 12313 
+    bcrypt.compare(plainPassword, this.password, function(err, isMatch){
+        if(err) return cb(err)
+        cb(null,isMatch)
+    })
+}
+
+userSchema.methods.generateToken = async function() {
+    try {
+        const user = this;
+        const token = jwt.sign(user._id.toHexString(), 'secreatToken');
+        user.token = token;
+        await user.save();
+        return user;
+    } catch (err) {
+        throw err;
+    }
+};
+
 
 const User = mongoose.model('User',userSchema)
 

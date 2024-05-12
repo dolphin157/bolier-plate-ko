@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 
 const config = require('./config/key')
 
+const { auth } = require('./middleware/auth')
 const { User } = require('./models/User');
 
 const app = express();
@@ -21,17 +22,17 @@ mongoose.connect(config.mongoURI,{
 app.get('/', (req,res) => res.send('Hello World!word'))
 
 
-app.post('/register', async (req, res) => {
+app.post('/api/users/register', async (req, res) => {
     try {
         const user = new User(req.body);
-        const userInfo = await user.save();
+        await user.save();
         return res.status(200).json({ success: true });
     } catch (err) {
         return res.status(500).json({ success: false, error: err.message });
     }
 })
 
-app.post('/login', async (req, res) => {
+app.post('/api/users/login', async (req, res) => {
     try {
         const user = await User.findOne({ email: req.body.email });
         if (!user) {
@@ -70,6 +71,32 @@ app.post('/login', async (req, res) => {
             loginSuccess: false,
             message: "서버 오류가 발생했습니다."
         });
+    }
+});
+
+
+
+app.get('/api/users/auth', auth , (req, res) => {
+
+    //미들웨어 통과해서 여기까지 왔으면 Auth가 Ture라는 뜻
+    res.status(200).json({
+        _id: req.user._id,
+        isAdmin: req.user.role === 0 ? false : true,
+        isAuth: true,
+        email: req.user.email,
+        name: req.user.name,
+        lastname: req.user.lastname,
+        role: req.user.role,
+        image: req.user.image
+    })
+})
+
+app.get('/api/users/logout', auth, async (req, res) => {
+    try {
+        await User.findOneAndUpdate({ _id: req.user._id }, { token: "" }).exec();
+        return res.status(200).send({ success: true });
+    } catch (err) {
+        return res.json({ success: false, err });
     }
 });
 

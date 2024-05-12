@@ -61,7 +61,7 @@ userSchema.methods.comparePassword = function(plainPassword, cb){
 userSchema.methods.generateToken = async function() {
     try {
         const user = this;
-        const token = jwt.sign(user._id.toHexString(), 'secreatToken');
+        const token = jwt.sign(user._id.toHexString(), 'secretToken');
         user.token = token;
         await user.save();
         return user;
@@ -69,6 +69,17 @@ userSchema.methods.generateToken = async function() {
         throw err;
     }
 };
+
+userSchema.statics.findByToken = async function(token) {
+    const user = this;
+    try {
+        const decoded = jwt.verify(token, 'secretToken');
+        const foundUser = await user.findOne({ "_id": decoded, "token": token });
+        return foundUser;
+    } catch (err) {
+        throw err;
+    }
+}
 
 
 const User = mongoose.model('User',userSchema)

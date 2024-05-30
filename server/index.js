@@ -30,9 +30,9 @@ app.post('/api/users/register', async (req, res) => {
   try {
     const user = new User(req.body);
     await user.save();
-    return res.status(200).json({ success: true });
+    return res.status(200).json({ registerSuccess: true });
   } catch (err) {
-    return res.status(500).json({ success: false, error: err.message });
+    return res.status(500).json({ registerSuccess: false, error: err.message });
   }
 });
 
